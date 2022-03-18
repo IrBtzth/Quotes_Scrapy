@@ -1,4 +1,5 @@
 import scrapy 
+import logging
 
 # Next page button = //ul[@class="pager"]//li[@class="next"]/a/@href
 class MySpider(scrapy.Spider):
@@ -21,18 +22,22 @@ class MySpider(scrapy.Spider):
         
         if kwargs:
             quotes = kwargs['quotes'] #Aqui se guardan las citas, inicialmente vacia, es una lista
+            authors = kwargs['authors']
+            self.log(quotes, logging.WARN)
+       
         quotes.extend(response.xpath(
             "//span[@class = 'text' and @itemprop= 'text']/text()").getall()) #aqui se agregan
-
+        authors.extend(response.xpath('//small[@class="author" and @itemprop = "author"]/text()').getall())
+        
         next_page_button_link = response.xpath('//ul[@class="pager"]//li[@class="next"]/a/@href').get()
-
+        
+       
         if next_page_button_link:
             yield response.follow(next_page_button_link, 
-            callback=self.parse_only_quotes, cb_kwargs= {'quotes': quotes})
+            callback=self.parse_only_quotes, cb_kwargs= {'quotes': quotes,'authors': authors})
         else:
-            authors = response.xpath('//small[@class="author" and @itemprop = "author"]/text()').getall()
             for i in range(0, len(quotes)-1):
-                quotes[i]= quotes[i]+ " by "+ authors[i]
+                quotes[i]= quotes[i]+ " by "+ authors[i] 
             yield {
                 'quotes': quotes
                 }
@@ -42,7 +47,10 @@ class MySpider(scrapy.Spider):
   
         quotes = response.xpath("//span[@class = 'text' and @itemprop= 'text']/text()").getall()
 
+        authors = response.xpath('//small[@class="author" and @itemprop = "author"]/text()').getall()
+
         topTags = response.xpath('//div/span/a[@class="tag"]/text()').getall()
+        
 
         top = getattr(self,'top', None)
         if top:
@@ -64,7 +72,7 @@ class MySpider(scrapy.Spider):
     
         if next_page_button_link:
             yield response.follow(next_page_button_link, 
-            callback=self.parse_only_quotes, cb_kwargs= {'quotes': quotes})
+            callback=self.parse_only_quotes, cb_kwargs= {'quotes': quotes, 'authors': authors})
     """
     1. To understand callback: A callback function is a function passed into another function as an argument, 
     which is then invoked inside the outer function to complete some kind of routine or action.
